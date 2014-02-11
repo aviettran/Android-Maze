@@ -1,0 +1,228 @@
+<<<<<<< .mine
+package com.csci367;
+
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
+import java.lang.Math;
+
+import android.opengl.GLSurfaceView;
+import android.os.SystemClock;
+
+public class MazeRenderer implements GLSurfaceView.Renderer {
+    private static final String LOG_TAG = MazeRenderer.class.getSimpleName();
+    
+    private Vec3D normal = new Vec3D(0,0,1);
+    private float ballX = 0;
+    private float ballY = 0;
+    
+    
+    @Override
+    public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+        // preparation
+        gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
+        gl.glEnableClientState(GL10.GL_COLOR_ARRAY);
+    }
+
+    @Override
+    public void onSurfaceChanged(GL10 gl, int w, int h) {
+        gl.glViewport(0, 0, w, h);
+    }
+    
+    @Override
+    public void onDrawFrame(GL10 gl) {
+        // define the color we want to be displayed as the "clipping wall"
+        gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        
+        // reset the matrix - good to fix the rotation to a static angle
+        gl.glLoadIdentity();
+        
+        // clear the color buffer to show the ClearColor we called above...
+        gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
+        
+        // Rotate entire slab
+        gl.glRotatef(30, 1, 0, 0);
+    
+        // set rotation for the non-static triangle
+        float theta = new Double(Math.atan(normal.Y/normal.Z) * 180 / Math.PI).floatValue();
+        float thi = new Double(Math.atan(normal.X/normal.Z) * 180 / Math.PI).floatValue();
+        gl.glRotatef(-theta, 1, 0, 0);
+        gl.glRotatef(-thi,   0, 1, 0);
+        
+        // Viewable table
+        gl.glPushMatrix();
+        gl.glScalef(.7f, .7f, .1f);
+    
+        Cube cube = new Cube();
+        cube.draw(gl);
+        
+        gl.glPopMatrix();
+        
+//        Table table = new Table();
+//        table.draw(gl);
+        
+        //Calculate Ball Position
+        gl.glPushMatrix();
+        gl.glScalef(.1f, .1f, .1f);
+        gl.glTranslatef(ballX,ballY,1);
+        Ball ball = new Ball();
+        ball.draw(gl);
+        gl.glPopMatrix();
+        
+    }
+    
+//    public void setColor(float r, float g, float b) {
+//        _red = r;
+//        _green = g;
+//        _blue = b;
+//    }
+    
+    //Set normalized touch coordinates, normalized touch x and y
+    public void setNTC(double x, double y){
+    	Vec3D center, subcenter;
+    	center = new Vec3D(x, y, 0);
+    	subcenter = new Vec3D(.5, .5, -2);
+    	normal = Vec3D.sub(center, subcenter).normalize();
+
+    }
+    
+    public void move(){
+        //Calculate Movement
+		ballX += normal.X;
+		ballY -= normal.Y;
+    }
+    
+}=======
+package com.csci367;
+
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
+import java.lang.Math;
+
+import android.opengl.GLSurfaceView;
+import android.opengl.GLU;
+
+public class MazeRenderer implements GLSurfaceView.Renderer {
+    
+    private Vec3D normal = new Vec3D(0,0,1);
+    private float ballX = 0;
+    private float ballY = 0;
+    private float ballVX = 0;
+    private float ballVY = 0;
+    private float uf = .1f;
+    
+    
+    
+    @Override
+    public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+        
+        //Light Colors
+        float lightAmbient[] = {1f, 1f, 1f, 1f};
+        float lightDiffuse[] = {1f, 1f, 1f, 1f};
+        
+        //Light Setup
+        float light_position[] = {-1f, -1f, -3f, 0f};
+        gl.glShadeModel(GL10.GL_SMOOTH);
+        
+		//Add light
+        gl.glLightfv(GL10.GL_LIGHT0, GL10.GL_POSITION, light_position, 0);
+		gl.glEnable(GL10.GL_LIGHTING);
+		gl.glEnable(GL10.GL_LIGHT0);	
+		gl.glLightfv(GL10.GL_LIGHT0, GL10.GL_AMBIENT, lightAmbient, 0);
+		gl.glLightfv(GL10.GL_LIGHT0, GL10.GL_DIFFUSE, lightDiffuse, 0);
+		
+		//Depth test
+		gl.glClearDepthf(1.0f); 					//Depth Buffer Setup
+		gl.glEnable(GL10.GL_DEPTH_TEST); 			//Enables Depth Testing
+		gl.glDepthFunc(GL10.GL_LEQUAL); 			//The Type Of Depth Testing To Do
+				
+    }
+
+    @Override
+    public void onSurfaceChanged(GL10 gl, int w, int h) {
+        gl.glViewport(0, 0, w, h);
+
+		gl.glMatrixMode(GL10.GL_PROJECTION); 	//Select The Projection Matrix
+		gl.glLoadIdentity(); 					//Reset The Projection Matrix
+
+		gl.glMatrixMode(GL10.GL_MODELVIEW); 	//Select The Modelview Matrix
+		gl.glLoadIdentity(); 					//Reset The Modelview Matrix
+    }
+    
+    @Override
+    public void onDrawFrame(GL10 gl) {
+        // define the color we want to be displayed as the "clipping wall"
+        gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        
+        // reset the matrix - good to fix the rotation to a static angle
+        gl.glLoadIdentity();
+        
+        // clear the color buffer to show the ClearColor we called above...
+        gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
+        
+        // Rotate entire slab
+        gl.glRotatef(30, 1, 0, 0);
+    
+        // set rotation for the non-static triangle
+        float theta = new Double(Math.atan(normal.Y/normal.Z) * 180 / Math.PI).floatValue();
+        float thi = new Double(Math.atan(normal.X/normal.Z) * 180 / Math.PI).floatValue();
+        gl.glRotatef(theta, 1, 0, 0);
+        gl.glRotatef(thi,   0, 1, 0);
+        
+        // Viewable table
+        gl.glPushMatrix();
+        gl.glScalef(.7f, .7f, .1f);
+    
+        MaterialCube cube = new MaterialCube();
+//        Cube cube = new Cube();
+        cube.draw(gl);
+        
+        gl.glPopMatrix();
+        
+//        Table table = new Table();
+//        table.draw(gl);
+        
+        //Calculate Ball Position
+        gl.glPushMatrix();
+        gl.glScalef(.1f, .1f, .1f);
+        gl.glTranslatef(ballX,ballY,-2);
+        MaterialCube ball = new MaterialCube();
+        ball.draw(gl);
+        gl.glPopMatrix();
+        
+    }
+    
+    //Set normalized touch coordinates, normalized touch x and y
+    public void setNTC(double x, double y){
+    	Vec3D center, subcenter;
+    	center = new Vec3D(x, y, 0);
+    	subcenter = new Vec3D(.5, .5, 2);
+    	normal = Vec3D.sub(center, subcenter).normalize();
+
+    }
+    
+    public void move(){
+    	// Add acceleration due to gravity, component of the normal
+    	ballVX += normal.X;
+    	ballVY += normal.Y;
+    	
+    	// FRICITON!! Subtract a constant velocity from the absolute value of velocity
+    	if (ballVX > uf)
+    		ballVX -= uf;
+    	else if (ballVX > -uf && ballVX < uf)
+    		ballVX = 0;
+    	else
+    		ballVX += uf;
+
+    	if (ballVY > uf)
+    		ballVY -= uf;
+    	else if (ballVY > -uf && ballVY < uf)
+    		ballVY = 0;
+    	else
+    		ballVY += uf;
+    	
+        //Calculate position
+		ballX += ballVX;
+		ballY -= ballVY;
+    }
+    
+}>>>>>>> .r371
